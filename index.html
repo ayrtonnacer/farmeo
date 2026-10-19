@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#12172B">
+  <title>Tiempo Oro</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="hud" aria-label="Tu progreso">
+    <div class="hud-level" id="hud-level" title="Nivel">
+      <span class="level-badge" id="level-num">1</span>
+      <div class="level-text">
+        <strong id="rank">Aprendiz</strong>
+        <div class="xpbar" role="progressbar" aria-label="Experiencia" id="xpbar"><i id="xpfill"></i></div>
+        <small id="xptext">0 / 150 XP</small>
+      </div>
+    </div>
+    <div class="hud-streak" id="streak" title="Días seguidos con al menos una tarea">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 3.5-1.5 5-1.5 7.5 0 1.4 1 2.5 2.3 2.5 1.6 0 2.4-1.4 2.2-3.3C17.6 10.4 19 13 19 15.5 19 19.1 15.9 22 12 22s-7-2.9-7-6.5C5 10.3 10.6 7.7 12 2z"/></svg>
+      <span id="streak-num">0</span>
+    </div>
+    <div class="purse" id="purse" aria-live="polite" title="Ganado hoy">
+      <span class="coin" aria-hidden="true"></span>
+      <span id="purse-amount">0</span>
+    </div>
+  </header>
+
+  <div class="sync" id="sync" hidden></div>
+
+  <main>
+    <!-- TIMER -->
+    <section class="view" id="view-timer" data-view="timer">
+      <div class="dial-wrap">
+        <svg class="dial" viewBox="0 0 220 220" aria-hidden="true">
+          <defs>
+            <linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#FFE29A"/>
+              <stop offset=".55" stop-color="#F2C14E"/>
+              <stop offset="1" stop-color="#B8862B"/>
+            </linearGradient>
+          </defs>
+          <circle class="dial-track" cx="110" cy="110" r="96"/>
+          <circle class="dial-ticks" cx="110" cy="110" r="104"/>
+          <circle class="dial-ring" id="dial-ring" cx="110" cy="110" r="96" pathLength="1000"/>
+        </svg>
+        <div class="dial-center">
+          <div class="dial-mode" id="dial-mode">Hoy</div>
+          <div class="clock" id="clock">0:00:00</div>
+          <div class="earning" id="earning">&nbsp;</div>
+        </div>
+      </div>
+
+      <form class="task" id="task-form" autocomplete="off">
+        <label class="task-name">
+          <span class="sr">Qué estás haciendo</span>
+          <input id="f-tarea" name="tarea" placeholder="¿En qué estás trabajando?" maxlength="140">
+        </label>
+
+        <div class="row2">
+          <label class="field">
+            <span>Cliente</span>
+            <select id="f-cliente" name="cliente"></select>
+          </label>
+          <label class="field">
+            <span>Proyecto</span>
+            <select id="f-proyecto" name="proyecto"></select>
+          </label>
+        </div>
+        <p class="rate" id="rate-hint"></p>
+
+        <label class="field">
+          <span>Etiquetas</span>
+          <input id="f-etiquetas" name="etiquetas" placeholder="diseño, reunión, bug">
+        </label>
+        <div class="tag-suggest" id="tag-suggest"></div>
+
+        <div class="toggles">
+          <div class="seg" role="radiogroup" aria-label="Tipo de tarea" id="seg-tipo">
+            <button type="button" role="radio" data-value="corta" aria-checked="true">Corta</button>
+            <button type="button" role="radio" data-value="larga" aria-checked="false">Larga</button>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="f-facturable" checked>
+            <span>Facturable</span>
+          </label>
+        </div>
+
+        <div class="toggles">
+          <div class="seg" role="radiogroup" aria-label="Modo" id="seg-modo">
+            <button type="button" role="radio" data-value="cronometro" aria-checked="true">Cronómetro</button>
+            <button type="button" role="radio" data-value="temporizador" aria-checked="false">Temporizador</button>
+          </div>
+          <label class="minutes" id="minutes-wrap" hidden>
+            <input type="number" id="f-minutos" min="1" max="600" step="1" value="25" inputmode="numeric">
+            <span>min</span>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="cta" id="btn-main">Empezar</button>
+          <button type="button" class="ghost" id="btn-discard" hidden>Descartar</button>
+        </div>
+      </form>
+
+      <section class="log" aria-labelledby="log-title">
+        <div class="log-head">
+          <h2 id="log-title">Últimos días</h2>
+          <button type="button" class="link" id="btn-manual">Cargar tiempo a mano</button>
+        </div>
+        <div id="log"></div>
+      </section>
+    </section>
+
+    <!-- ESTADÍSTICAS -->
+    <section class="view" id="view-stats" data-view="stats" hidden>
+      <div class="chips" role="tablist" aria-label="Período" id="period"></div>
+      <div id="stats"></div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section class="view" id="view-clients" data-view="clients" hidden>
+      <div id="clients"></div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="view" id="view-settings" data-view="settings" hidden>
+      <div id="settings"></div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="Secciones">
+    <button data-tab="timer" aria-current="page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+      Timer
+    </button>
+    <button data-tab="stats">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      Estadísticas
+    </button>
+    <button data-tab="clients">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.6.8 2.7 2.6 3 5.2"/></svg>
+      Clientes
+    </button>
+    <button data-tab="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      Ajustes
+    </button>
+  </nav>
+
+  <dialog id="manual-dialog">
+    <form method="dialog" id="manual-form">
+      <h2>Cargar tiempo a mano</h2>
+      <label class="field"><span>Tarea</span><input name="tarea" required maxlength="140"></label>
+      <div class="row3">
+        <label class="field"><span>Fecha</span><input type="date" name="fecha" required></label>
+        <label class="field"><span>Desde</span><input type="time" name="inicio" required></label>
+        <label class="field"><span>Hasta</span><input type="time" name="fin" required></label>
+      </div>
+      <div class="row2">
+        <label class="field"><span>Cliente</span><select name="cliente"></select></label>
+        <label class="field"><span>Proyecto</span><select name="proyecto"></select></label>
+      </div>
+      <label class="field"><span>Etiquetas</span><input name="etiquetas" placeholder="separadas por coma"></label>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" name="larga"><span>Tarea larga</span></label>
+        <label class="switch"><input type="checkbox" name="facturable" checked><span>Facturable</span></label>
+      </div>
+      <p class="form-error" id="manual-error" hidden></p>
+      <div class="actions">
+        <button class="cta" value="save">Guardar</button>
+        <button class="ghost" value="cancel" formnovalidate>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="levelup" id="levelup" hidden>
+    <div class="levelup-card">
+      <span class="levelup-num" id="levelup-num">2</span>
+      <p>Subiste de nivel</p>
+      <strong id="levelup-rank">Aprendiz</strong>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="fx" id="fx" aria-hidden="true"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
